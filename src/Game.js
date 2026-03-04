@@ -63,10 +63,11 @@ export default class Game {
         // ── Opponents ──
         const carModels = ['car1', 'car2', 'car3'];
         const opColors = [0x00d2ff, 0x00ff88, 0xffaa00, 0xaa00ff, 0xff6600];
-        const skillLvls = [0.72, 0.78, 0.82, 0.75, 0.68];
+        const skillLvls = [0.85, 0.90, 0.95, 0.88, 0.82]; // Increased base skill
 
         for (let i = 1; i <= 5; i++) {
-            const t = 1 - (i * 0.08); // spread behind start
+            // Spawn opponents slightly AHEAD of the start line
+            const t = (i * 0.012) % 1;
             const pt = this.track.getPointAt(t);
             const tan = this.track.getTangentAt(t);
             const heading = Math.atan2(tan.x, tan.z);

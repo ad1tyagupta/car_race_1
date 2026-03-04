@@ -38,9 +38,9 @@ export default class Car {
         this.speed = 0;           // current forward speed (units/s)
 
         // ── Tuning constants ─────────────────────────────────────────────
-        this.maxSpeed = isPlayer ? 40 : 35;   // units/s
+        this.maxSpeed = isPlayer ? 45 : 43;   // Increased overall speed
         this.maxReverse = 15;
-        this.accel = isPlayer ? 22 : 18;   // units/s²
+        this.accel = isPlayer ? 24 : 22;   // Increased acceleration for challenge
         this.brakeForce = 35;
         this.friction = 0.92;  // multiplicative per frame (applied to speed)
         this.turnSpeed = 1.8;   // radians/s at full speed (scales with speed)
@@ -68,10 +68,10 @@ export default class Car {
     _buildFromModel(modelScene) {
         const clone = modelScene.clone(true);
 
-        // Normalise size: longest horizontal extent → 7 units
+        // Normalise size: longest horizontal extent → 10 units (scaled up from 7)
         const box = new THREE.Box3().setFromObject(clone);
         const size = box.getSize(new THREE.Vector3());
-        const s = 7 / Math.max(size.x, size.z, 0.01);
+        const s = 10 / Math.max(size.x, size.z, 0.01);
         clone.scale.setScalar(s);
 
         // Re-compute bounding box after scale, center it and put base at Y=0
@@ -104,23 +104,24 @@ export default class Car {
         };
 
         // Main body — elongated along Z (local forward = +Z in Three.js mesh space)
-        add(new THREE.BoxGeometry(1.8, 0.7, 4.5), body, 0, 0.5, 0);
-        add(new THREE.BoxGeometry(1.4, 0.6, 2.5), body, 0, 1.1, -0.3); // cockpit region
-        add(new THREE.BoxGeometry(0.9, 0.5, 2.5), body, 0, 0.5, 2.8); // nose
-        add(new THREE.BoxGeometry(4.5, 0.1, 1.0), body, 0, 0.4, 2.8); // front wing
-        add(new THREE.BoxGeometry(3.0, 0.1, 0.8), body, 0, 1.8, -2.0); // rear wing
-        add(new THREE.BoxGeometry(0.15, 1.3, 0.5), black, -0.85, 1.2, -2.0); // rear wing pillar L
-        add(new THREE.BoxGeometry(0.15, 1.3, 0.5), black, 0.85, 1.2, -2.0); // rear wing pillar R
+        // Scaled up ~1.5x manually
+        add(new THREE.BoxGeometry(2.7, 1.05, 6.75), body, 0, 0.75, 0);
+        add(new THREE.BoxGeometry(2.1, 0.9, 3.75), body, 0, 1.65, -0.45); // cockpit region
+        add(new THREE.BoxGeometry(1.35, 0.75, 3.75), body, 0, 0.75, 4.2); // nose
+        add(new THREE.BoxGeometry(6.75, 0.15, 1.5), body, 0, 0.6, 4.2); // front wing
+        add(new THREE.BoxGeometry(4.5, 0.15, 1.2), body, 0, 2.7, -3.0); // rear wing
+        add(new THREE.BoxGeometry(0.2, 1.95, 0.75), black, -1.25, 1.8, -3.0); // rear wing pillar L
+        add(new THREE.BoxGeometry(0.2, 1.95, 0.75), black, 1.25, 1.8, -3.0); // rear wing pillar R
 
         // Wheels — CylinderGeometry, rotated so cylinder axis = X (lateral)
-        const wheelGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.7, 16);
+        const wheelGeo = new THREE.CylinderGeometry(1.2, 1.2, 1.05, 16);
         wheelGeo.rotateZ(Math.PI / 2);
-        [[-1, 3, 2.0], [1, 3, 2.0], [-1, 3, -1.8], [1, 3, -1.8]].forEach(([sx, , z]) => {
-            add(wheelGeo, tyre, sx * 1.45, 0.6, z);
+        [[-1, 3, 3.0], [1, 3, 3.0], [-1, 3, -2.7], [1, 3, -2.7]].forEach(([sx, , z]) => {
+            add(wheelGeo, tyre, sx * 2.15, 0.9, z);
         });
 
         // Cockpit
-        add(new THREE.BoxGeometry(0.7, 0.4, 1.0), black, 0, 1.45, -0.2);
+        add(new THREE.BoxGeometry(1.05, 0.6, 1.5), black, 0, 2.15, -0.3);
     }
 
     // ─── Physics update ───────────────────────────────────────────────────────
@@ -141,8 +142,13 @@ export default class Car {
             // Player input
             if (keys.up) throttle = 1;
             if (keys.down) throttle = -1;
-            if (keys.left) steer = 1;  //  +1 = left = heading increases = anti-clockwise
-            if (keys.right) steer = -1;  //  -1 = right = heading decreases = clockwise
+
+            // Flipped controls:
+            // Since the camera is looking down the -Z axis of the car, mathematically increasing 
+            // the heading (steer = +1) turns the car RIGHT on the screen.
+            // Decreasing the heading (steer = -1) turns the car LEFT on the screen.
+            if (keys.left) steer = 1;
+            if (keys.right) steer = -1;
         } else {
             // AI input
             throttle = aiThrottle ?? 0;

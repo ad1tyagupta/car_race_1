@@ -18,7 +18,7 @@ export default class Track {
      */
     constructor(scene, mapDef) {
         this.scene = scene;
-        this.roadWidth = 22;   // full road width in world units
+        this.roadWidth = 14;   // Scaled down road width for better car proportion
         this.segments = 400;  // mesh smoothness
 
         // Build closed spline
@@ -32,6 +32,7 @@ export default class Track {
         this._buildGrass();
         this._buildRoad();
         this._buildKerbs();
+        this._buildScenery(); // Add trees
         scene.add(this.group);
     }
 
@@ -45,6 +46,61 @@ export default class Track {
         mesh.position.y = -0.05;
         mesh.receiveShadow = true;
         this.group.add(mesh);
+    }
+
+    _buildScenery() {
+        // Shared materials & geometries for performance
+        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a2e00 });
+        const leavesMat = new THREE.MeshLambertMaterial({ color: 0x1d4d1d });
+
+        const trunkGeo = new THREE.CylinderGeometry(0.8, 1.2, 4, 6);
+        const leavesGeo = new THREE.ConeGeometry(3.5, 9, 7);
+
+        // Build 150 random trees around the track
+        for (let i = 0; i < 150; i++) {
+            const t = Math.random();
+            const point = this.curve.getPointAt(t);
+            const tangent = this.curve.getTangentAt(t);
+            const up = new THREE.Vector3(0, 1, 0);
+            const right = new THREE.Vector3().crossVectors(tangent, up).normalize();
+
+            // Randomly place trees safely off the road (outside kerbs)
+            // Distance from center: between 12 and 40 units away
+            const side = Math.random() > 0.5 ? 1 : -1;
+            const dist = 12 + Math.random() * 28;
+
+            const treeX = point.x + right.x * side * dist;
+            const treeZ = point.z + right.z * side * dist;
+
+            // Randomly offset slightly to make it less perfectly parallel to the track
+            const finalX = treeX + (Math.random() - 0.5) * 5;
+            const finalZ = treeZ + (Math.random() - 0.5) * 5;
+
+            // Construct tree group
+            const tree = new THREE.Group();
+
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = 2; // half height
+            trunk.castShadow = true;
+            trunk.receiveShadow = true;
+
+            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+            leaves.position.y = 7.5; // sit on trunk
+            leaves.castShadow = true;
+            leaves.receiveShadow = true;
+
+            tree.add(trunk);
+            tree.add(leaves);
+
+            tree.position.set(finalX, 0, finalZ);
+
+            // Give trees slightly random sizes and rotations
+            const s = 0.8 + Math.random() * 0.7;
+            tree.scale.set(s, s, s);
+            tree.rotation.y = Math.random() * Math.PI * 2;
+
+            this.group.add(tree);
+        }
     }
 
     _buildRoad() {
