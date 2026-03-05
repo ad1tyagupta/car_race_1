@@ -48,7 +48,7 @@ export default class Game {
         this._destroyCurrentLevel();
 
         const mapDef = MAPS[mapId];
-        this.track = new Track(this.scene, mapDef);
+        this.track = new Track(this.scene, mapDef, this.assets);
 
         // ── Player ──
         const startPt = this.track.getPointAt(0);

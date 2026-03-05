@@ -59,7 +59,7 @@ export default class OpponentAI {
         // 5. Proportional steer — positive angleDiff = target is to right → steer right
         // Car convention: steer 1 = left, steer -1 = right
         // angleDiff > 0 = target is to right (clockwise) = steer right (-1)
-        const steer = -Math.sign(angleDiff) * Math.min(Math.abs(angleDiff) / 0.5, 1.0) * this.skill;
+        const steer = Math.sign(angleDiff) * Math.min(Math.abs(angleDiff) / 0.5, 1.0) * this.skill;
 
         // 6. Throttle — reduce when turning sharply
         const turn = Math.abs(angleDiff);

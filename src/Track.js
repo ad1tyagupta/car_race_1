@@ -14,9 +14,10 @@ import * as THREE from 'three';
 export default class Track {
     /**
      * @param {THREE.Scene} scene
-     * @param {Object} mapDef  — { name, points: THREE.Vector3[] }
+     * @param {Object} mapDef  — { name, points: THREE.Vector3[], modelKey?: string }
+     * @param {AssetLoader} [assets=null] 
      */
-    constructor(scene, mapDef) {
+    constructor(scene, mapDef, assets = null) {
         this.scene = scene;
         this.roadWidth = 14;   // Scaled down road width for better car proportion
         this.segments = 400;  // mesh smoothness
@@ -31,10 +32,47 @@ export default class Track {
         this.obstacles = []; // Stores objects like {x, z, radius} for physics
 
         this.group = new THREE.Group();
-        this._buildGrass();
-        this._buildRoad();
-        this._buildKerbs();
-        this._buildScenery(); // Add trees
+
+        let useProcedural = true;
+
+        if (mapDef.modelKey && assets) {
+            const trackModel = assets.get(mapDef.modelKey);
+            if (trackModel) {
+                useProcedural = false;
+                // Clone the model so it can be reused across resets securely
+                const trackMesh = trackModel.clone();
+
+                // Auto-scale and center the massive unknown GLB track
+                const box = new THREE.Box3().setFromObject(trackMesh);
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.z);
+
+                // We want the track to be roughly 400x400 units to fit our physics/AI speeds
+                if (maxDim > 0) {
+                    const scaleFactor = 400 / maxDim;
+                    trackMesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                }
+
+                // Recompute box after scale to center it properly
+                const scaledBox = new THREE.Box3().setFromObject(trackMesh);
+                const center = scaledBox.getCenter(new THREE.Vector3());
+                // Center X and Z, and place the lowest Y point exactly on the ground (Y=0)
+                trackMesh.position.set(-center.x, -scaledBox.min.y, -center.z);
+
+                this.group.add(trackMesh);
+                console.log(`[Track] Loaded and scaled custom GLB track: ${mapDef.modelKey}`);
+            } else {
+                console.warn(`[Track] Custom model '${mapDef.modelKey}' not loaded. Falling back to procedural.`);
+            }
+        }
+
+        if (useProcedural) {
+            this._buildGrass();
+            this._buildRoad();
+            this._buildKerbs();
+            this._buildScenery(); // Add trees
+        }
+
         scene.add(this.group);
     }
 

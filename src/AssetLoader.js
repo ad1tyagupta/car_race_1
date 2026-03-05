@@ -15,6 +15,8 @@ export default class AssetLoader {
             { key: 'car1', url: 'assets/models/Car_1.glb' },
             { key: 'car2', url: 'assets/models/Car_2.glb' },
             { key: 'car3', url: 'assets/models/Car_3.glb' },
+            { key: 'track_glb', url: 'assets/race_track/race-track-23mb-glb/source/track.glb' },
+            { key: 'track_glb_2', url: 'assets/race_track/Race_Track_2.glb' }
         ];
     }
 
@@ -27,11 +29,11 @@ export default class AssetLoader {
 
     _loadOne(key, url) {
         return new Promise((resolve) => {
-            // 5-second timeout — if model fails/hangs we continue with null
+            // 15-second timeout — if model fails/hangs we continue with null (large tracks)
             const timer = setTimeout(() => {
                 console.warn(`[AssetLoader] Timeout: ${key}`);
                 resolve(null);
-            }, 5000);
+            }, 15000);
 
             this._loader.load(
                 url,
