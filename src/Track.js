@@ -28,6 +28,8 @@ export default class Track {
         this._sampleCount = 1000;
         this._samples = this.curve.getPoints(this._sampleCount);
 
+        this.obstacles = []; // Stores objects like {x, z, radius} for physics
+
         this.group = new THREE.Group();
         this._buildGrass();
         this._buildRoad();
@@ -100,6 +102,13 @@ export default class Track {
             tree.rotation.y = Math.random() * Math.PI * 2;
 
             this.group.add(tree);
+
+            // Register as a physics obstacle (solid base cylinder radius is ~1.2 * scale)
+            this.obstacles.push({
+                x: finalX,
+                z: finalZ,
+                radius: 1.5 * s
+            });
         }
     }
 

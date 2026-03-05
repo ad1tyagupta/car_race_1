@@ -38,12 +38,12 @@ export default class Car {
         this.speed = 0;           // current forward speed (units/s)
 
         // ── Tuning constants ─────────────────────────────────────────────
-        this.maxSpeed = isPlayer ? 45 : 43;   // Increased overall speed
-        this.maxReverse = 15;
-        this.accel = isPlayer ? 24 : 22;   // Increased acceleration for challenge
-        this.brakeForce = 35;
-        this.friction = 0.92;  // multiplicative per frame (applied to speed)
-        this.turnSpeed = 1.8;   // radians/s at full speed (scales with speed)
+        this.maxSpeed = isPlayer ? 55 : 53;   // Increased overall speed
+        this.maxReverse = 20;
+        this.accel = isPlayer ? 75 : 70;   // High accel to overcome friction
+        this.brakeForce = 90;
+        this.friction = 0.98;  // much lower drag so cars can actually move fast
+        this.turnSpeed = 1.35;  // Reduced from 2.4 so car doesn't spin 90 degrees instantly
         this.colliderRadius = 3.5;  // for car-car collision
 
         // ── Race tracking ────────────────────────────────────────────────
@@ -143,12 +143,8 @@ export default class Car {
             if (keys.up) throttle = 1;
             if (keys.down) throttle = -1;
 
-            // Flipped controls:
-            // Since the camera is looking down the -Z axis of the car, mathematically increasing 
-            // the heading (steer = +1) turns the car RIGHT on the screen.
-            // Decreasing the heading (steer = -1) turns the car LEFT on the screen.
-            if (keys.left) steer = 1;
-            if (keys.right) steer = -1;
+            if (keys.left) steer = -1; // -1 decreases heading = left
+            if (keys.right) steer = 1; // 1 increments heading = right
         } else {
             // AI input
             throttle = aiThrottle ?? 0;
@@ -175,19 +171,16 @@ export default class Car {
 
         // ── Steering (only meaningful when moving) ───────────────────────
         if (Math.abs(this.speed) > 0.5) {
-            // Turn rate scales with speed (tighter turn at low speed for realism)
-            const speedFactor = Math.min(Math.abs(this.speed) / this.maxSpeed, 1.0);
+            // Car steers responsibly once it has SOME speed.
+            const speedFactor = Math.abs(this.speed) > 10 ? 1.0 : (Math.abs(this.speed) / 10.0);
             const turnRate = this.turnSpeed * speedFactor;
 
-            // Heading: left = positive rotation (anti-clockwise viewed from above)
+            // Heading: left = negative rotation, right = positive
             this.heading += steer * turnRate * dt * Math.sign(this.speed);
         }
 
         // ── Move in heading direction ────────────────────────────────────
-        // In Three.js: +X = right, +Z = toward camera.
-        // We define heading=0 as facing +Z (camera direction).
-        // heading increases anti-clockwise (left turn).
-        //   Forward direction = (sin(heading), 0, cos(heading))  ... classic game convention
+        // Forward direction = (sin(heading), 0, cos(heading))
         const dx = Math.sin(this.heading) * this.speed * dt;
         const dz = Math.cos(this.heading) * this.speed * dt;
 
@@ -197,11 +190,8 @@ export default class Car {
 
         // ── Sync mesh ────────────────────────────────────────────────────
         this.mesh.position.copy(this.pos);
-        // Car model: Three.js mesh default forward = +Z. Rotate by heading.
-        // Heading = 0 → face +Z, heading = PI/2 → face +X (right)
-        // mesh.rotation.y rotates anti-clockwise in world space, so:
-        //   mesh.rotation.y = -heading  (because rotating the mesh CW undoes the CCW heading)
-        this.mesh.rotation.y = -this.heading;
+        // Correct 3D spatial alignment: mapping world heading to Three.js Y-rotation
+        this.mesh.rotation.y = this.heading;
         this.mesh.position.y = 0;
     }
 

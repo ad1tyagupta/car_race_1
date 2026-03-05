@@ -115,6 +115,7 @@ export default class Game {
         // ── Collision detection (car vs car) ──
         const allCars = [this.player, ...this.opponents];
         this._resolveCollisions(allCars);
+        this._resolveObstacleCollisions(allCars);
 
         // ── Lap progress ──
         this._updateProgress(this.player, dt);
@@ -128,6 +129,37 @@ export default class Game {
     }
 
     // ── Collision resolution ──────────────────────────────────────────────────
+
+    _resolveObstacleCollisions(cars) {
+        if (!this.track || !this.track.obstacles) return;
+
+        for (const car of cars) {
+            for (const obs of this.track.obstacles) {
+                const dx = car.pos.x - obs.x;
+                const dz = car.pos.z - obs.z;
+                const distSq = dx * dx + dz * dz;
+                const minD = car.colliderRadius + obs.radius;
+
+                // Sphere collision
+                if (distSq < minD * minD && distSq > 0.001) {
+                    const dist = Math.sqrt(distSq);
+                    const overlap = minD - dist;
+                    const nx = dx / dist;
+                    const nz = dz / dist;
+
+                    // Push car fully out of the solid obstacle
+                    car.pos.x += nx * overlap;
+                    car.pos.z += nz * overlap;
+
+                    // Crash penalty - hitting a tree kills 80% momentum
+                    car.speed *= 0.2;
+
+                    // Sync mesh immediately
+                    car.mesh.position.copy(car.pos);
+                }
+            }
+        }
+    }
 
     _resolveCollisions(cars) {
         for (let a = 0; a < cars.length; a++) {
@@ -156,8 +188,11 @@ export default class Game {
 
                     // Exchange velocity components along collision normal
                     // (elastic collision approximation — swap projected speeds)
-                    const vaLong = ca.speed * Math.cos(ca.heading - Math.atan2(nx, nz));
-                    const vbLong = cb.speed * Math.cos(cb.heading - Math.atan2(nx, nz));
+                    const caHeadingNorm = Math.atan2(Math.sin(ca.heading), Math.cos(ca.heading));
+                    const cbHeadingNorm = Math.atan2(Math.sin(cb.heading), Math.cos(cb.heading));
+
+                    const vaLong = ca.speed * Math.cos(caHeadingNorm - Math.atan2(nx, nz));
+                    const vbLong = cb.speed * Math.cos(cbHeadingNorm - Math.atan2(nx, nz));
 
                     const restitution = 0.4;
                     const impulse = (vaLong - vbLong) * restitution;
@@ -228,6 +263,28 @@ export default class Game {
         document.getElementById('pos-val').innerText = `${place}/${allCars.length}`;
         document.getElementById('lap-val').innerText = `${Math.min(this.player.lap + 1, this.totalLaps)}/${this.totalLaps}`;
         document.getElementById('speed-val').innerText = Math.round(Math.abs(this.player.speed));
+
+        // Debug Info
+        let debugEl = document.getElementById('debug-info');
+        if (!debugEl) {
+            debugEl = document.createElement('div');
+            debugEl.id = 'debug-info';
+            debugEl.style.position = 'absolute';
+            debugEl.style.top = '50px';
+            debugEl.style.left = '10px';
+            debugEl.style.color = 'lime';
+            debugEl.style.fontFamily = 'monospace';
+            debugEl.style.fontSize = '14px';
+            debugEl.style.zIndex = '9999';
+            document.body.appendChild(debugEl);
+        }
+
+        debugEl.innerText =
+            `SPEED: ${this.player.speed.toFixed(3)}\n` +
+            `X, Z: ${this.player.pos.x.toFixed(2)}, ${this.player.pos.z.toFixed(2)}\n` +
+            `HEADING: ${this.player.heading.toFixed(3)}\n` +
+            `KEYS: UP=${this.input.keys.up} DN=${this.input.keys.down} L=${this.input.keys.left} R=${this.input.keys.right}\n` +
+            `OPP[0] SPEED: ${this.opponents[0] ? this.opponents[0].speed.toFixed(3) : 'N/A'}`;
     }
 
     // ── Finish ────────────────────────────────────────────────────────────────
