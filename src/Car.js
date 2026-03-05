@@ -143,8 +143,8 @@ export default class Car {
             if (keys.up) throttle = 1;
             if (keys.down) throttle = -1;
 
-            if (keys.left) steer = -1; // -1 decreases heading = left
-            if (keys.right) steer = 1; // 1 increments heading = right
+            if (keys.left) steer = 1; // 1 increments heading = visually left on screen
+            if (keys.right) steer = -1; // -1 decreases heading = visually right on screen
         } else {
             // AI input
             throttle = aiThrottle ?? 0;
